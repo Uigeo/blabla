@@ -1,0 +1,20 @@
+#login{
+    margin-top : 150px;
+    width: 55%;
+}
+
+.login-layout{
+    display: flex;
+    justify-content: center;
+}
+
+.logbtn{
+    display: flex;
+    justify-content: center;
+
+}
+
+.logbtn2{
+    width : 100px;
+    margin : 10px 10px 10px 10px;
+}
