@@ -5,7 +5,14 @@ var multer = require('multer');
 var upload = multer({dest: 'public/'});
 var mysql = require('mysql');
 
+
+
 var app = express();
+var server = app.listen(3000, function(){
+    console.log('connected :3000');
+});
+
+var io = require('socket.io').listen(server);
 
 var auth = {
     user_id: null,
@@ -40,7 +47,7 @@ app.get('/', function (req, res) {
             return;
         } 
         else if (chatrooms.length > 0) {
-            var sql = `SELECT chatroom_name FROM chatroom JOIN participate ON participate.chatroom_id = chatroom.chatroom_id WHERE participate.user_id = ? AND banish = 0`;    
+            var sql = `SELECT  chatroom.chatroom_id, chatroom_name FROM chatroom JOIN participate ON participate.chatroom_id = chatroom.chatroom_id WHERE participate.user_id = ? AND banish = 0`;    
             conn.query(sql, [auth.user_id], (err, participated, fields)=>{
                 if(err){
                     console.error('error connecting: ' + err.stack);
@@ -163,10 +170,20 @@ app.get('/join/:chatroom_id', function (req, res) {
     });
 });
 
-
-app.listen(3000, function(){
-  console.log('connected :3000');
+app.get('/chat/:chatroom_id', (req, res) => {
+    var chatroom_id = req.params.chatroom_id;
+    io.on('connection', function(socket){
+        
+        socket.on(`${chatroom_id}`, function(msg){
+          io.emit(`${chatroom_id}`, msg);
+          console.log(`chatroom id:  ${chatroom_id}`);
+        });
+    });
+    res.render('chatroom',{chatroom_id:chatroom_id, io:io});
 });
+
+
+
 
 
 // var login = require('./login')(app);
