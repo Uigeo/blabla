@@ -199,9 +199,9 @@ app.get('/chat/:chatroom_id', (req, res) => {
 
 io.on('connection', function(socket){
         
-    socket.on(`1`, function(msg){
-      io.emit(`1`, msg);
-      console.log(`chatroom id:  1`);
+    socket.on(`chat`, function(m){
+      io.emit(m.id, m.msg);
+      console.log(`chatroom id:  ${m.id}`);
     });
 
 

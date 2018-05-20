@@ -21,7 +21,7 @@
       $(function () {
         var socket = io();
         $('form').submit(function(){
-          socket.emit(`{{chatroom_id}}`, $('#m').val());
+          socket.emit(`chat`, {id:`{{chatroom_id}}`, msg:$('#m').val()});
           $('#m').val('');
           return false;
         });
