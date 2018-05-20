@@ -43,7 +43,7 @@ app.get('/', function (req, res) {
     
     if(req.session.user_id){
         console.log('authed');
-        var sql = `SELECT chatroom_id ,chatroom_name, hash_tag, (SELECT COUNT(participate.user_id)  FROM participate WHERE participate.chatroom_id = chatroom.chatroom_id AND participate.banish = 0) AS person FROM chatroom`;
+        var sql = `SELECT chatroom.chatroom_id, chatroom_name, hash_tag, (SELECT COUNT(participate.user_id) AS person FROM participate WHERE participate.chatroom_id = chatroom.chatroom_id AND participate.banish='0') FROM chatroom WHERE chatroom_name NOT IN (SELECT chatroom_name FROM chatroom JOIN participate ON participate.chatroom_id =chatroom.chatroom_id WHERE participate.user_id = '${req.session.user_id}') `;
         conn.query(sql, (err, chatrooms, fields)=>{
         if(err){
             console.log("error___");
@@ -51,6 +51,7 @@ app.get('/', function (req, res) {
             return;
         } 
         else if (chatrooms.length > 0) {
+            
             var sql = `SELECT  chatroom.chatroom_id, chatroom_name FROM chatroom JOIN participate ON participate.chatroom_id = chatroom.chatroom_id WHERE participate.user_id = ? AND banish = 0`;    
             conn.query(sql, [req.session.user_id], (err, participated, fields)=>{
                 if(err){
@@ -143,13 +144,7 @@ app.post('/login', function(req, res){
             req.session.user_nickname = users[0].user_nickname;
             req.session.user_profile = users[0].user_profile;
             
-            let auth = {
-                user_id:req.session.user_id,
-                user_nickname: req.session.user_nickname,
-                user_profile:req.session.user_profile
-            }
-            
-            res.render('loged', {auth:auth} );
+            res.redirect('/');
         }else{
             console.log("login fail");
             res.render('login', {failed:'Login failed'});
@@ -180,20 +175,29 @@ app.get('/join/:chatroom_id', function (req, res) {
 
 app.get('/chat/:chatroom_id', (req, res) => {
     var chatroom_id = req.params.chatroom_id;
-    console.log('chaa');
-    // io.on('connection', function(socket){
-        
-    //     socket.on(`${chatroom_id}`, function(msg){
-    //       io.emit(`${chatroom_id}`, msg);
-    //       console.log(`chatroom id:  ${chatroom_id}`);
-    //     });
+    var sql = `SELECT user_nickname, user_profile FROM users JOIN participate ON participate.user_id = users.user_id WHERE participate.chatroom_id = ? AND participate.banish=0`;
+    conn.query(sql, [chatroom_id], (err, users, fields)=>{
+        if(err){
+            console.error('error connecting: ' + err.stack);
+        }else{
+            var sql = `SELECT * FROM msg WHERE datetime > (NOW() - INTERVAL 1 WEEK) AND chatroom_id = ?`;
+            conn.query(sql, [chatroom_id], (err, msgs, fields)=>{
+                res.render('chatroom',{chatroom_id:chatroom_id, users:users, nick:req.session.user_nickname, user_id:req.session.user_id, msgs:msgs});
+            });
+        }
+    });
+});
 
-    //     socket.on('disconnect', function () {
-    //         console.log('disconnect!!!');
-    //         io.emit('user disconnected');
-    //       });
-    // });
-    res.render('chatroom',{chatroom_id:chatroom_id, io:io});
+app.get('/chatout/:chatroom_id', (req, res) => {
+    var chatroom_id = req.params.chatroom_id;
+    var sql = `DELETE FROM participate WHERE chatroom_id = ? AND user_id = ?`;
+    conn.query(sql, [chatroom_id , req.session.user_id], (err, users, fields)=>{
+        if(err){
+            console.error('error connecting: ' + err.stack);
+        }else{
+            res.redirect('/');
+        }
+    });
 });
 
 
@@ -201,7 +205,14 @@ io.on('connection', function(socket){
         
     socket.on(`chat`, function(m){
       io.emit(m.id, m.msg);
-      console.log(`chatroom id:  ${m.id}`);
+      var sql = `INSERT INTO msg (content, user_id, read_count, datetime, chatroom_id) VALUES( ? , ? ,'1', NOW(), ?)`;
+      conn.query(sql, [m.msg , m.user, m.id], (err, users, fields)=>{
+          if(err){
+              console.error('error connecting: ' + err.stack);
+          }else{
+              console.log('save');
+          }
+      });
     });
 
 
@@ -211,6 +222,9 @@ io.on('connection', function(socket){
       });
 });
 
+app.get('/mypage', (req, res) => {
+    res.render('mypage');
+});
 
 
 

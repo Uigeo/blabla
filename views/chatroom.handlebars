@@ -13,9 +13,64 @@
       #messages { margin-bottom: 40px }
     </style>
 
+
+   
+
     <div class='container'>
+    <div class="btn-group" role="group" aria-label="Basic example">
+        <button type="button" class="btn btn-secondary" data-toggle="modal" data-target="#exampleModal">Users</button>
+        <a href="/chatout/{{chatroom_id}}" type="button" class="btn btn-secondary">Leave</a>
+    </div>
+
+
+    <!-- Modal -->
+    <div class="modal fade" id="exampleModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+        <div class="modal-header">
+            <h5 class="modal-title" id="exampleModalLabel">participants</h5>
+            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+            </button>
+        </div>
+        <div class="modal-body">
+           
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                    <th scope="col">#</th>
+                    <th scope="col">Nickname</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {{#each users}}
+                    <tr>
+                        <th scope="row">{{@index}}</th>
+                        <td>{{this.user_nickname}}</td>
+                    </tr>
+                    <tr>
+                    {{/each}}
+                </tbody>
+                </table>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+        </div>
+        </div>
+    </div>
+    </div>
+
         <div class='message-box'>
-            <ul id="messages" ></ul>
+            <ul id="messages" >
+                {{#each msgs}}
+                    <li class="list-group-item list-group-item-action list-group-item-light d-flex justify-content-between align-items-center">
+                        {{this.content}}
+                        <small class="text-muted">{{this.user_id}}</small>
+                        <small class="text-muted">{{this.datetime}}</small>
+                        <span class="badge badge-primary badge-pill">2</span>
+                    </li>
+                {{/each}}
+            </ul>
         </div>
          
         <form action="">
@@ -35,15 +90,17 @@
     <script src="https://code.jquery.com/jquery-1.11.1.js"></script>
     <script>
       $(function () {
+        
         var socket = io();
         $('form').submit(function(){
-          socket.emit(`chat`, {id:`{{chatroom_id}}`, msg:$('#m').val()});
+          socket.emit(`chat`, {user:`{{user_id}}`, id:`{{chatroom_id}}`, msg:$('#m').val()});
           $('#m').val('');
           return false;
         });
         socket.on(`{{chatroom_id}}`, function(msg){
+        var d = new Date();
           $('#messages').append($('<li class=" list-group-item list-group-item-action list-group-item-light d-flex justify-content-between align-items-center">')
-              .html(`${msg} <span class="badge badge-primary badge-pill">2</span>`));
+              .html(`${msg} <small class="text-muted">{{nick}}</small> ${d.toLocaleTimeString()} <span class="badge badge-primary badge-pill">2</span>`));
           window.scrollTo(0, document.body.scrollHeight);
         });
       });
