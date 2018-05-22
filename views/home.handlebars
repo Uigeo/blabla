@@ -37,7 +37,7 @@
             </div>
           </div>
 
-        <div class="list-group" id="chatroom-group">
+        <div class="list-group roomlist" id="chatroom-group">
           {{#each chatrooms}}
               <a href="/join/{{this.chatroom_id}}" class="list-group-item chatroom justify-content-between align-items-center list-group-item-info list-group-item-action">
                 <h5>{{this.chatroom_name}}</h5>
@@ -52,10 +52,10 @@
           <from class="input-group mb-3">
             <input type="text" class="form-control" placeholder="room name"  aria-describedby="basic-addon2">
             <div class="input-group-append">
-              <button class="btn btn-outline-secondary" type="submit">search</button>
+              <button class="btn btn-outline-secondary" type="button">search</button>
             </div>
           </from>
-        <div class="list-group">
+        <div class="list-group roomlist">
           {{#each participated}}
               <a href="/chat/{{this.chatroom_id}}" class="list-group-item list-group-item-action list-group-item-light">
                 <h5>{{this.chatroom_name}}</h5>
