@@ -2,15 +2,26 @@
     <style>
  
       
-      form {  position: fixed; bottom: 0;}
+      form { }
       form input { border: 0;  }
       
       .message-box {
           height: 400px;
       }
+      .msgcon{
+            width: 55%;
+      }
+
+      .time{
+          width: 12%;
+      }
+
+      .nick{
+          width: 5%;
+      }
       
       #messages li { margin-bottom: 10px; color: black}
-      #messages { margin-bottom: 40px }
+      #messages { margin-bottom: 40px; max-height: 600px; overflow: scroll; }
     </style>
 
 
@@ -18,17 +29,19 @@
 
     <div class='container'>
     <div class="btn-group" role="group" aria-label="Basic example">
-        <button type="button" class="btn btn-secondary" data-toggle="modal" data-target="#exampleModal">Users</button>
-        <a href="/chatout/{{chatroom_id}}" type="button" class="btn btn-secondary">Leave</a>
+        <button type="button" class="btn btn-secondary" data-toggle="modal" data-target="#users">Users</button>
+        <a href="/chatout/{{chatroom_id}}"  type="button" class="btn btn-secondary">Leave </a>
+        <button type="button"  id='toomuchbtn' class="btn btn-secondary" data-toggle="modal" data-target="#toomuch">TooMuchTalker</button>
+        <a href="/"  type="button" class="btn btn-secondary">Back </a>
     </div>
 
 
     <!-- Modal -->
-    <div class="modal fade" id="exampleModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
+    <div class="modal fade" id="users" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
     <div class="modal-dialog" role="document">
         <div class="modal-content">
         <div class="modal-header">
-            <h5 class="modal-title" id="exampleModalLabel">participants</h5>
+            <h5 class="modal-title" id="exampleModalLabel">Users</h5>
             <button type="button" class="close" data-dismiss="modal" aria-label="Close">
             <span aria-hidden="true">&times;</span>
             </button>
@@ -60,27 +73,49 @@
     </div>
     </div>
 
+    <div class="modal fade" id="toomuch" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+        <div class="modal-header">
+            <h5 class="modal-title" id="exampleModalLabel">Too Much Talker</h5>
+            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+            </button>
+        </div>
+        <div class="modal-body">
+           <div id='result'></div>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+        </div>
+        </div>
+    </div>
+    </div>
+
+
         <div class='message-box'>
+            <br>
             <ul id="messages" >
                 {{#each msgs}}
                     <li class="list-group-item list-group-item-action list-group-item-light d-flex justify-content-between align-items-center">
-                        {{this.content}}
-                        <small class="text-muted">{{this.user_id}}</small>
-                        <small class="text-muted">{{this.datetime}}</small>
+                        <p class="msgcon">{{this.content}}</p>
+                        <small class="text-muted nick">{{this.user_id}}</small>
+                        <small class="text-muted time">{{this.datetime}}</small>
                         <span class="badge badge-primary badge-pill">2</span>
                     </li>
                 {{/each}}
             </ul>
+            <form action="">
+                <div class="input-group mb-3">
+                    <input type="text" class="form-control" id="m" autocomplete="off"  >
+                    <div class="input-group-append">
+                        <button class="btn btn-dark" type="submit">Send</button>
+                    </div>
+                </div>
+            </form>
         </div>
          
-        <form action="">
-            <div class="input-group mb-3">
-                <input type="text" class="form-control" id="m" autocomplete="off"  >
-                <div class="input-group-append">
-                    <button class="btn btn-outline-secondary" type="button">Send</button>
-                </div>
-            </div>
-        </form>
+
     </div>
 
 
@@ -90,7 +125,7 @@
     <script src="https://code.jquery.com/jquery-1.11.1.js"></script>
     <script>
       $(function () {
-        
+        $('#messages').animate({scrollTop:1000000},'50');
         var socket = io();
         $('form').submit(function(){
           socket.emit(`chat`, {user:`{{user_id}}`, id:`{{chatroom_id}}`, msg:$('#m').val()});
@@ -100,8 +135,21 @@
         socket.on(`{{chatroom_id}}`, function(msg){
         var d = new Date();
           $('#messages').append($('<li class=" list-group-item list-group-item-action list-group-item-light d-flex justify-content-between align-items-center">')
-              .html(`${msg} <small class="text-muted">{{nick}}</small> ${d.toLocaleTimeString()} <span class="badge badge-primary badge-pill">2</span>`));
-          window.scrollTo(0, document.body.scrollHeight);
+              .html(`<p class='msgcon'> ${msg} </p> <small class="text-muted">{{nick}}</small> ${d.toLocaleTimeString()} <span class="badge badge-primary badge-pill">2</span>`));
+          $('#messages').animate({scrollTop:100000},'50');
         });
+      });
+
+      $('#toomuchbtn').click(function(){
+          $('#result').html('');
+          $.ajax({
+              url: `/toomuch/{{chatroom_id}}`,
+              dataType: 'html',
+              type: 'GET',
+              success: function(result){
+                      $('#result').html(result);
+                  }
+              }
+          );
       });
     </script>

@@ -1,0 +1,30 @@
+<div class="cover-container d-flex w-100 h-100 p-3 mx-auto flex-column">
+<header class="masthead mb-auto">
+    <div class="inner">
+        <h3 class="masthead-brand">Blabla</h3>
+        <nav class="nav nav-masthead justify-content-center">
+            <a class="nav-link active" href="/">Home</a>
+            <a class="nav-link" href="/newchat">New Chatroom</a>
+            <a class="nav-link" href="/mypage">{{user.user_nickname}}</a>
+            <a class="nav-link" href="/logout">Logout</a>
+        </nav>
+    </div>
+</header>
+
+
+<div class='container'>
+    <div class="row justify-content-md-center">
+    <div class="col col-lg-1"></div>
+    
+    <div class="card mb-3 myinfo ">
+    <img class="card-img-top myimg" src="{{user.user_profile}}" alt="Card image cap">
+        <div class="card-body">
+            <h5 class="card-title">{{user.user_nickname}}</h5>
+            <p class="card-text"><small class="text-muted">{{user.user_id}}</small></p>
+        </div>
+    </div>
+    <div class="col col-lg-1"></div>
+    </div>
+     <a href="/delete/{{user.user_id}}"><button type="button" class="btn btn-danger">Remove This Account</button></a>
+</div>
+</div>

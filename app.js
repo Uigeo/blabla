@@ -43,7 +43,7 @@ app.get('/', function (req, res) {
     
     if(req.session.user_id){
         console.log('authed');
-        var sql = `SELECT chatroom.chatroom_id, chatroom_name, hash_tag, (SELECT COUNT(participate.user_id) AS person FROM participate WHERE participate.chatroom_id = chatroom.chatroom_id AND participate.banish='0') FROM chatroom WHERE chatroom_name NOT IN (SELECT chatroom_name FROM chatroom JOIN participate ON participate.chatroom_id =chatroom.chatroom_id WHERE participate.user_id = '${req.session.user_id}') `;
+        var sql = `SELECT chatroom.chatroom_id, chatroom_name, hash_tag, (SELECT COUNT(participate.user_id)  FROM participate WHERE participate.chatroom_id = chatroom.chatroom_id AND participate.banish='0') AS person FROM chatroom WHERE chatroom_name NOT IN (SELECT chatroom_name FROM chatroom JOIN participate ON participate.chatroom_id =chatroom.chatroom_id WHERE participate.user_id = '${req.session.user_id}') `;
         conn.query(sql, (err, chatrooms, fields)=>{
         if(err){
             console.log("error___");
@@ -51,7 +51,7 @@ app.get('/', function (req, res) {
             return;
         } 
         else if (chatrooms.length > 0) {
-            
+            console.log(chatrooms);
             var sql = `SELECT  chatroom.chatroom_id, chatroom_name FROM chatroom JOIN participate ON participate.chatroom_id = chatroom.chatroom_id WHERE participate.user_id = ? AND banish = 0`;    
             conn.query(sql, [req.session.user_id], (err, participated, fields)=>{
                 if(err){
@@ -113,7 +113,12 @@ app.post('/signup', upload.single('profile_img') ,(req, res) => {
     var id = req.body.id;
     var pw = req.body.pw;
     var nick = req.body.nick;
-    var url = req.file.filename;
+    var url;
+    if(req.file){
+        url = req.file.filename;
+    }else{
+        url = "https://www.atabula.com/wp-content/uploads/2017/10/innovore-blabla.jpg";
+    }
     
     var sql = `INSERT INTO users (user_id, user_pw, user_nickname, user_profile) VALUES ( ?, ?, ?, ?);` ;
     conn.query(sql, [id, pw, nick, url], (err, users, fields)=>{
@@ -121,7 +126,6 @@ app.post('/signup', upload.single('profile_img') ,(req, res) => {
             console.error('error connecting: ' + err.stack);
             return;
         } else{
-            console.log(users);
             res.render('login', {signup:'Signup Success'});
         }
     });
@@ -167,7 +171,6 @@ app.get('/join/:chatroom_id', function (req, res) {
             console.error('error connecting: ' + err.stack);
             return;
         }else{
-            console.log(participated);
             res.redirect('/');
         }
     });
@@ -182,6 +185,11 @@ app.get('/chat/:chatroom_id', (req, res) => {
         }else{
             var sql = `SELECT * FROM msg WHERE datetime > (NOW() - INTERVAL 1 WEEK) AND chatroom_id = ?`;
             conn.query(sql, [chatroom_id], (err, msgs, fields)=>{
+                msgs.forEach(msg => {
+                    let d =  new Date(msg.datetime).toLocaleTimeString();
+                    msg.datetime = d;
+                });
+                console.log(msgs);
                 res.render('chatroom',{chatroom_id:chatroom_id, users:users, nick:req.session.user_nickname, user_id:req.session.user_id, msgs:msgs});
             });
         }
@@ -223,8 +231,81 @@ io.on('connection', function(socket){
 });
 
 app.get('/mypage', (req, res) => {
-    res.render('mypage');
+
+    var sql = `Select * FROM users WHERE user_id = ?`;
+    conn.query(sql, [req.session.user_id], (err, user, fields)=>{
+        if(err){
+            console.error('error connecting: ' + err.stack);
+        }else{
+            res.render('mypage', {user:user[0]});
+        }
+    });
 });
+
+app.get('/delete/:user_id', (req, res) => {
+    if(req.session.user_id === req.params.user_id){
+        let id = req.params.user_id;
+        var sql = `
+        DELETE FROM participate WHERE user_id = ?;
+        DELETE FROM msg WHERE user_id = ?;  
+        DELETE FROM users WHERE user_id = ?;   
+        `;
+        conn.query(sql, [id,id,id], (err, user, fields)=>{
+            if(err){
+                console.error('error connecting: ' + err.stack);
+            }else{
+                req.session.destroy();
+                res.redirect('/');
+            }
+        });
+    }
+});
+
+
+app.get('/toomuch/:chatroom_id', (req,res)=>{
+    var chatroom_id = req.params.chatroom_id;
+    var sql = `SELECT * FROM users 
+            WHERE (SELECT COUNT(msg.msg_id) AS nmsg FROM msg 
+            WHERE msg.user_id = users.user_id AND datetime > (NOW() - INTERVAL 1 WEEK) AND msg.chatroom_id = ${chatroom_id})
+            = (SELECT MAX( (SELECT COUNT(msg.msg_id) AS nmsg FROM msg WHERE msg.user_id =users.user_id AND datetime > 
+            (NOW() - INTERVAL 1 WEEK) AND msg.chatroom_id = ${chatroom_id})) FROM users)`;
+
+    conn.query(sql, (err, user, fields)=>{
+        if(err){
+            console.error('error connecting: ' + err.stack);
+        }else{
+            res.render('toomuch', {user:user[0]});
+        }
+    });
+})
+
+app.get('/search/notin/:keyword', (req,res)=>{
+    var keyword = req.params.keyword;
+    var sql
+     = `SELECT chatroom_id ,chatroom_name, hash_tag, (SELECT COUNT(participate.user_id)  FROM participate WHERE participate.chatroom_id = chatroom.chatroom_id AND participate.banish ='0') AS person FROM chatroom WHERE chatroom_name LIKE '%${keyword}%' OR hash_tag LIKE '%${keyword}%'`;
+    console.log(keyword);
+    conn.query(sql, (err, chatrooms, fields)=>{
+        if(err){
+            console.error('error connecting: ' + err.stack);
+        }else{
+            return res.render('notin', {chatrooms:chatrooms});
+        }
+    });
+})
+
+app.get('/search/in/:keyword', (req,res)=>{
+    var keyword = req.params.keyword;
+    var sql
+     = `SELECT chatroom_id ,chatroom_name, hash_tag, (SELECT COUNT(participate.user_id) AS person FROM participate WHERE participate.chatroom_id = chatroom.chatroom_id AND participate.banish ='0') FROM chatroom WHERE chatroom_name LIKE '%${keyword}%' OR hash_tag LIKE '%${keyword}%'`;
+
+    conn.query(sql, (err, chatrooms, fields)=>{
+        if(err){
+            console.error('error connecting: ' + err.stack);
+        }else{
+            res.render('in', {chatrooms});
+        }
+    });
+})
 
 
 

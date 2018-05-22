@@ -29,21 +29,35 @@
       
       <div class='row'>
         <div class="col">
-        <div class="list-group ">
+          <h2>Chatrooms</h2>
+          <div class="input-group mb-3">
+            <input id='notin-search' type="text" class="form-control" placeholder="chatroom name or hashtag" aria-describedby="basic-addon2">
+            <div class="input-group-append">
+              <button  id='search-btn' class="btn btn-outline-secondary" type="button">search</button>
+            </div>
+          </div>
+
+        <div class="list-group" id="chatroom-group">
           {{#each chatrooms}}
-              <a href="/join/{{this.chatroom_id}}" class="list-group-item chatroom justify-content-between align-items-center list-group-item-action">
+              <a href="/join/{{this.chatroom_id}}" class="list-group-item chatroom justify-content-between align-items-center list-group-item-info list-group-item-action">
                 <h5>{{this.chatroom_name}}</h5>
                 <p>{{this.hash_tag}}</p> 
                 <span class="badge badge-primary badge-pill">{{this.person}}</span>
-              </a>
-              
+              </a>         
           {{/each}}
         </div>
         </div>
         <div class="col">
+          <h2>Your Chatrooms</h2>
+          <from class="input-group mb-3">
+            <input type="text" class="form-control" placeholder="room name"  aria-describedby="basic-addon2">
+            <div class="input-group-append">
+              <button class="btn btn-outline-secondary" type="submit">search</button>
+            </div>
+          </from>
         <div class="list-group">
           {{#each participated}}
-              <a href="/chat/{{this.chatroom_id}}" class="list-group-item list-group-item-action">
+              <a href="/chat/{{this.chatroom_id}}" class="list-group-item list-group-item-action list-group-item-light">
                 <h5>{{this.chatroom_name}}</h5>
                 <span class="badge badge-primary badge-pill">14</span>
               </a>
@@ -62,7 +76,21 @@
     <!-- Bootstrap core JavaScript
     ================================================== -->
     <!-- Placed at the end of the document so the pages load faster -->
+    <script src="https://code.jquery.com/jquery-1.11.1.js"></script>
+      <script>
+      $('#search-btn').click(function(){
+          $.ajax({
+              url: `/search/notin/`+ $('#notin-search').val(),
+              dataType: 'html',
+              type: 'GET',
+              success: function(result){
+                      $('#chatroom-group').html(result);
+                  }
+              }
+          )
+      });
 
+      </script>
   
 
 </body>
