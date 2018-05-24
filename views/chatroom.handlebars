@@ -33,10 +33,11 @@
         <a href="/chatout/{{chatroom_id}}"  type="button" class="btn btn-secondary">Leave </a>
         <button type="button"  id='toomuchbtn' class="btn btn-secondary" data-toggle="modal" data-target="#toomuch">TooMuchTalker</button>
         <a href="/"  type="button" class="btn btn-secondary">Back </a>
+        <button type="button"  id='noticebtn' class="btn btn-secondary" data-toggle="modal" data-target="#notice">Notice</button>
     </div>
 
 
-    <!-- Modal -->
+    <!-- User Modal -->
     <div class="modal fade" id="users" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
     <div class="modal-dialog" role="document">
         <div class="modal-content">
@@ -93,11 +94,31 @@
     </div>
 
 
+    <div class="modal fade" id="notice" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+        <div class="modal-header">
+            <h5 class="modal-title" id="exampleModalLabel">Notice</h5>
+            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+            </button>
+        </div>
+        <div class="modal-body">
+           <div id='notice-result'></div>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+        </div>
+        </div>
+    </div>
+    </div>
+
         <div class='message-box'>
             <br>
             <ul id="messages" >
                 {{#each msgs}}
-                    <li class="list-group-item list-group-item-action list-group-item-light d-flex justify-content-between align-items-center">
+                    <li class="setnotice list-group-item list-group-item-action list-group-item-light d-flex justify-content-between align-items-center">
+                        <input type="hidden" name="msgid" value='{{this.msg_id}}'>
                         <p class="msgcon">{{this.content}}</p>
                         <small class="text-muted nick">{{this.user_id}}</small>
                         <small class="text-muted time">{{this.datetime}}</small>
@@ -125,18 +146,19 @@
     <script src="https://code.jquery.com/jquery-1.11.1.js"></script>
     <script>
       $(function () {
-        $('#messages').animate({scrollTop:1000000},'50');
+        $('#messages').animate({scrollTop:1000000},'100');
         var socket = io();
         $('form').submit(function(){
-          socket.emit(`chat`, {user:`{{user_id}}`, id:`{{chatroom_id}}`, msg:$('#m').val()});
+          socket.emit(`chat`, {nick:`{{nick}}`, user:`{{user_id}}`, id:`{{chatroom_id}}`, msg:$('#m').val()});
           $('#m').val('');
           return false;
         });
-        socket.on(`{{chatroom_id}}`, function(msg){
+        socket.on(`{{chatroom_id}}`, function(m){
         var d = new Date();
           $('#messages').append($('<li class=" list-group-item list-group-item-action list-group-item-light d-flex justify-content-between align-items-center">')
-              .html(`<p class='msgcon'> ${msg} </p> <small class="text-muted">{{nick}}</small> ${d.toLocaleTimeString()} <span class="badge badge-primary badge-pill">2</span>`));
+              .html(` <p class='msgcon'> ${m.msg} </p> <small class="text-muted">${m.nick}</small> ${d.toLocaleTimeString()} <span class="badge badge-primary badge-pill">2</span>`));
           $('#messages').animate({scrollTop:100000},'50');
+          
         });
       });
 
@@ -152,4 +174,27 @@
               }
           );
       });
+
+        $('#noticebtn').click(function(){
+          $('#notice-result').html('');
+          $.ajax({
+              url: `/notice/{{chatroom_id}}`,
+              dataType: 'html',
+              type: 'GET',
+              success: function(result){
+                      $('#notice-result').html(result);
+                  }
+              }
+          );
+      });
+
+      $('.setnotice').click(function(){
+            $.ajax({
+              url: `/setnotice/{{chatroom_id}}/` + $(this).children('input').val(),
+              dataType: 'html',
+              type: 'GET'
+            });
+            alert('Set New Notice');
+      });
+
     </script>

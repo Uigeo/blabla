@@ -21,10 +21,37 @@
         <div class="card-body">
             <h5 class="card-title">{{user.user_nickname}}</h5>
             <p class="card-text"><small class="text-muted">{{user.user_id}}</small></p>
+            <a href="/delete/{{user.user_id}}"><button type="button" class="btn btn-danger">Remove This Account</button></a>
         </div>
     </div>
     <div class="col col-lg-1"></div>
     </div>
-     <a href="/delete/{{user.user_id}}"><button type="button" class="btn btn-danger">Remove This Account</button></a>
+     
+
+    <table class="table">
+        <thead class="thead-dark">
+            <tr>
+            <th scope="col">#</th>
+            <th scope="col">Room Name</th>
+            <th scope="col">Room Type</th>
+            <th scope="col">Hash Tag</th>
+            <th scope="col">Destroy</th>
+            </tr>
+        </thead>
+        <tbody>
+            {{#each myroom}}
+            <tr>
+            <th scope="row">{{@index}}</th>
+            <td>{{this.chatroom_name}}</td>
+            <td>{{this.room_type}}</td>
+            <td>{{this.hash_tag}}</td>
+            <td><a href="/rmroom/{{this.chatroom_id}}" role="button" type="button" class="btn btn-link">Destroy</a></td>
+            </tr>
+            {{/each}}
+        </tbody>
+        </table>
+
+
+
 </div>
 </div>
