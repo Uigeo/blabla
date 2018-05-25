@@ -53,13 +53,22 @@ app.get('/', function (req, res) {
         } 
         else if (chatrooms.length > 0) {
            
-            var sql = `SELECT  chatroom.chatroom_id, chatroom_name FROM chatroom JOIN participate ON participate.chatroom_id = chatroom.chatroom_id WHERE participate.user_id = ? AND banish = 0`;    
+            var sql = `
+                START TRANSACTION;
+                CREATE VIEW userin AS SELECT chatroom.chatroom_id ,chatroom.chatroom_name, chatroom.hash_tag FROM chatroom JOIN participate ON participate.chatroom_id =chatroom.chatroom_id WHERE participate.user_id = ? AND banish = 0;
+                SELECT userin.chatroom_id, userin.chatroom_name, userin.hash_tag, msg.content FROM userin JOIN msg ON userin.chatroom_id = msg.chatroom_id WHERE msg.datetime = (SELECT MAX(datetime) FROM msg WHERE msg.chatroom_id = userin.chatroom_id);
+                COMMIT;
+            `;    
             conn.query(sql, [req.session.user_id], (err, participated, fields)=>{
                 if(err){
                     console.error('error connecting: ' + err.stack);
                     return;
                 }else if (participated.length > 0){
-                    res.render('home', {chatrooms:chatrooms,participated:participated, auth:{user_id:req.session.user_id, user_nickname: req.session.user_nickname, user_profile:req.session.user_profile}} );
+                    
+                    conn.query('DROP VIEW userin;', (eer, result, fields)=>{
+                        if(err)console.error('error connecting: ' + err.stack);
+                    });
+                    res.render('home', {chatrooms:chatrooms,participated:participated[2], auth:{user_id:req.session.user_id, user_nickname: req.session.user_nickname, user_profile:req.session.user_profile}} );
                 }else{
                     res.render('home', {chatrooms:chatrooms,participated:'No participated Room', auth:{user_id:req.session.user_id, user_nickname: req.session.user_nickname, user_profile:req.session.user_profile}} );
                 }
@@ -171,36 +180,56 @@ app.get('/logout', function (req, res) {
 });
 
 app.get('/join/:chatroom_id', function (req, res) {
-    var chatroom_id = req.params.chatroom_id;
-    var sql = `INSERT INTO participate (chatroom_id, user_id, banish, ptime) VALUES ( ?, ?, '0', CURRENT_TIMESTAMP);` 
-    conn.query(sql, [chatroom_id, req.session.user_id], (err, participated, fields)=>{
-        if(err){
-            console.error('error connecting: ' + err.stack);
-            return;
-        }else{
-            res.redirect('/');
-        }
-    });
+    if(req.session.user_id){
+        var chatroom_id = req.params.chatroom_id;
+        var sql = `INSERT INTO participate (chatroom_id, user_id, banish, ptime) VALUES ( ?, ?, '0', CURRENT_TIMESTAMP);` 
+        conn.query(sql, [chatroom_id, req.session.user_id], (err, participated, fields)=>{
+            if(err){
+                console.error('error connecting: ' + err.stack);
+                return;
+            }else{
+                res.redirect('/');
+            }
+        });
+    }else{
+        res.redirect('/');
+    }
+
+
 });
 
 app.get('/chat/:chatroom_id', (req, res) => {
-    var chatroom_id = req.params.chatroom_id;
-    req.session.cur_chatroom = chatroom_id;
-    var sql = `SELECT user_nickname, user_profile FROM users JOIN participate ON participate.user_id = users.user_id WHERE participate.chatroom_id = ? AND participate.banish=0`;
-    conn.query(sql, [chatroom_id], (err, users, fields)=>{
-        if(err){
-            console.error('error connecting: ' + err.stack);
-        }else{
-            var sql = `SELECT * FROM msg WHERE datetime > (NOW() - INTERVAL 1 WEEK) AND chatroom_id = ?`;
-            conn.query(sql, [chatroom_id], (err, msgs, fields)=>{
-                msgs.forEach(msg => {
-                    let d =  new Date(msg.datetime).toLocaleTimeString();
-                    msg.datetime = d;
+    if(req.session.user_id){
+        var chatroom_id = req.params.chatroom_id;
+        req.session.cur_chatroom = chatroom_id;
+
+        var sql = `UPDATE participate SET ptime = now() WHERE chatroom_id = ? AND user_id = ?`;
+        conn.query(sql, [chatroom_id, req.session.user_id], (err, result, fields)=>{
+            if(err){
+                console.error('error connecting: ' + err.stack);
+            }
+            console.log("Work");
+        });
+
+        var sql = `SELECT user_nickname, user_profile FROM users JOIN participate ON participate.user_id = users.user_id WHERE participate.chatroom_id = ? AND participate.banish=0`;
+        conn.query(sql, [chatroom_id], (err, users, fields)=>{
+            if(err){
+                console.error('error connecting: ' + err.stack);
+            }else{
+                var sql = `SELECT * FROM msg WHERE datetime > (NOW() - INTERVAL 1 WEEK) AND chatroom_id = ?`;
+                conn.query(sql, [chatroom_id], (err, msgs, fields)=>{
+                    msgs.forEach(msg => {
+                        let d =  new Date(msg.datetime).toLocaleTimeString();
+                        msg.datetime = d;
+                    });
+                    res.render('chatroom',{chatroom_id:chatroom_id, users:users, nick:req.session.user_nickname, user_id:req.session.user_id, msgs:msgs});
                 });
-                res.render('chatroom',{chatroom_id:chatroom_id, users:users, nick:req.session.user_nickname, user_id:req.session.user_id, msgs:msgs});
-            });
-        }
-    });
+            }
+        });
+    }
+    else{
+        res.redirect('/');
+    }
 });
 
 app.get('/chatout/:chatroom_id', (req, res) => {
@@ -219,51 +248,49 @@ app.get('/chatout/:chatroom_id', (req, res) => {
 io.on('connection', function(socket){
         
     socket.on(`chat`, function(m){
-      io.emit(m.id, m);
+      
       var sql = `INSERT INTO msg (content, user_id, read_count, datetime, chatroom_id) VALUES( ? , ? ,'1', NOW(), ?)`;
-      conn.query(sql, [m.msg , m.user, m.id], (err, users, fields)=>{
+      conn.query(sql, [m.msg , m.user, m.id], (err, msg, fields)=>{
           if(err){
               console.error('error connecting: ' + err.stack);
           }else{
-              console.log('save');
+                m.msg_id = msg.insertId;
+                io.emit(m.id, m);
+              console.log(m);
           }
       });
     });
-
 
 
     socket.on('disconnect', function () {
        
         var sql = `UPDATE participate SET ptime = now() WHERE chatroom_id = ? AND user_id = ?`;
         console.log('disconnect');
-        // conn.query(sql, [room_id, user_id], (err, result, fields)=>{
-        //     if(err){
-        //         console.error('error connecting: ' + err.stack);
-        //     }else{
-        //         console.log('ptime update');
-        //     }
-        // });
         io.emit('user disconnected');
       });
 });
 
 app.get('/mypage', (req, res) => {
+    if(req.session.user_id){
+        var sql = `Select * FROM users WHERE user_id = ?`;
+        conn.query(sql, [req.session.user_id], (err, user, fields)=>{
+            if(err){
+                console.error('error connecting: ' + err.stack);
+            }else{
+                var sql = `SELECT chatroom_id, chatroom_name, room_type, hash_tag FROM chatroom WHERE user_id = ?`;
+                conn.query(sql, [req.session.user_id], (err, chatrooms, fields)=>{
+                    if(err){
+                        console.error('error connecting: ' + err.stack);
+                    }else{
+                        res.render('mypage', {user:user[0] ,myroom:chatrooms });
+                    }
+                });
+            }
+        });
+    }else{
+        res.redirect('/');
+    }
 
-    var sql = `Select * FROM users WHERE user_id = ?`;
-    conn.query(sql, [req.session.user_id], (err, user, fields)=>{
-        if(err){
-            console.error('error connecting: ' + err.stack);
-        }else{
-            var sql = `SELECT chatroom_id, chatroom_name, room_type, hash_tag FROM chatroom WHERE user_id = ?`;
-            conn.query(sql, [req.session.user_id], (err, chatrooms, fields)=>{
-                if(err){
-                    console.error('error connecting: ' + err.stack);
-                }else{
-                    res.render('mypage', {user:user[0] ,myroom:chatrooms });
-                }
-            });
-        }
-    });
 });
 
 app.get('/delete/:user_id', (req, res) => {
@@ -327,10 +354,12 @@ app.get('/notice/:chatroom_id', (req,res) => {
         if(err){
             console.error('error connecting: ' + err.stack);
         }else{
-            console.log(msg);
-            res.send(`
-                    <h1> ${msg[0].content}</h1>
-            `);
+            try {
+                res.send(` <h1> ${msg[0].content}</h1> `);
+            } catch (error) {
+                res.send("No Notice");
+            }
+
         }
     })
 
@@ -364,8 +393,47 @@ app.get(`/rmroom/:chatroom_id`, (req, res)=> {
         }else{
             res.redirect('/');
         }
-    })
+    });
     console.log('Deleted');
+})
+
+app.get('/banlist/:chatroom_id', (req, res)=>{
+    var chatroom_id = req.params.chatroom_id;
+    var user_id = req.session.user_id;
+    var sql = `SELECT * FROM chatroom WHERE chatroom_id = ? AND user_id = ?`;
+    conn.query( sql, [chatroom_id, user_id], (err, result, fields)=>{
+        if(err) {
+            console.error('error connecting: ' + err.stack);
+        }else{
+            if(result.length > 0){
+                sql = `SELECT * FROM users JOIN participate ON participate.user_id = users.user_id WHERE participate.chatroom_id = ? AND participate.banish=0`;
+                conn.query(sql, [chatroom_id], (err, users, fields)=>{
+                    if(err){
+                        console.error('error connecting: ' + err.stack);
+                    }else{
+                        res.render('banlist', {users: users, chatroom_id:chatroom_id});
+                    }
+                });
+            }else{
+                res.send("You are not host!!");
+            }
+        }
+    });
+})
+
+app.get('/ban/:chatroom_id/:user_id', (req,res)=>{
+    var chatroom_id = req.params.chatroom_id;
+    var user_id = req.params.user_id;
+    var sql = `UPDATE participate SET banish = 1 WHERE chatroom_id = ? AND user_id = ?`;
+    conn.query(sql, [chatroom_id, user_id], (err, result, fields)=>{
+        if(err){
+            console.error('error connecting: ' + err.stack);
+        }else{
+            console.log("Ban!!");
+            io.emit('ban', user_id);
+        }
+    });
+    
 })
 
 // var login = require('./login')(app);

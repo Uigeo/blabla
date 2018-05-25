@@ -34,6 +34,7 @@
         <button type="button"  id='toomuchbtn' class="btn btn-secondary" data-toggle="modal" data-target="#toomuch">TooMuchTalker</button>
         <a href="/"  type="button" class="btn btn-secondary">Back </a>
         <button type="button"  id='noticebtn' class="btn btn-secondary" data-toggle="modal" data-target="#notice">Notice</button>
+        <button type="button"  id='banlistbtn' class="btn btn-secondary" data-toggle="modal" data-target="#banlist">ban</button>
     </div>
 
 
@@ -74,6 +75,7 @@
     </div>
     </div>
 
+    {{!-- TOOMUCH NODAL--}}
     <div class="modal fade" id="toomuch" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
     <div class="modal-dialog" role="document">
         <div class="modal-content">
@@ -93,7 +95,7 @@
     </div>
     </div>
 
-
+    {{!-- NOTICE NODAL--}}
     <div class="modal fade" id="notice" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
     <div class="modal-dialog" role="document">
         <div class="modal-content">
@@ -105,6 +107,25 @@
         </div>
         <div class="modal-body">
            <div id='notice-result'></div>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+        </div>
+        </div>
+    </div>
+    </div>
+    {{!-- BANLIST NODAL--}}
+    <div class="modal fade" id="banlist" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+        <div class="modal-header">
+            <h5 class="modal-title" id="exampleModalLabel">Ban</h5>
+            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+            </button>
+        </div>
+        <div class="modal-body">
+           <div id='banlist-result'></div>
         </div>
         <div class="modal-footer">
             <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
@@ -155,10 +176,17 @@
         });
         socket.on(`{{chatroom_id}}`, function(m){
         var d = new Date();
-          $('#messages').append($('<li class=" list-group-item list-group-item-action list-group-item-light d-flex justify-content-between align-items-center">')
-              .html(` <p class='msgcon'> ${m.msg} </p> <small class="text-muted">${m.nick}</small> ${d.toLocaleTimeString()} <span class="badge badge-primary badge-pill">2</span>`));
+          $('#messages').append($(`<li class="setnotice list-group-item list-group-item-action list-group-item-light d-flex justify-content-between align-items-center">`)
+              .html(` <input type="hidden" name="msgid" value=${m.msg_id}>
+                 <p class='msgcon'> ${m.msg} </p> 
+                 <small class="text-muted">${m.nick}</small> 
+                 <small class="text-muted">${d.toLocaleTimeString()}</small> 
+                 <span class="badge badge-primary badge-pill">2</span>`));
           $('#messages').animate({scrollTop:100000},'50');
-          
+        });
+        
+        socket.on('ban', function(user_id){
+            if(user_id == `{{user_id}}`) window.location.href = "/";
         });
       });
 
@@ -195,6 +223,19 @@
               type: 'GET'
             });
             alert('Set New Notice');
+      });
+
+        $('#banlist').click(function(){
+          $('#banlist-result').html('');
+          $.ajax({
+              url: `/banlist/{{chatroom_id}}`,
+              dataType: 'html',
+              type: 'GET',
+              success: function(result){
+                      $('#banlist-result').html(result);
+                  }
+              }
+          );
       });
 
     </script>
