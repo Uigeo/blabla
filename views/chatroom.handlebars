@@ -29,7 +29,7 @@
 
     <div class='container'>
     <div class="btn-group" role="group" aria-label="Basic example">
-        <button type="button" class="btn btn-secondary" data-toggle="modal" data-target="#users">Users</button>
+        <button type="button"  id='userlist' class="btn btn-secondary" data-toggle="modal" data-target="#users">Users</button>
         <a href="/chatout/{{chatroom_id}}"  type="button" class="btn btn-secondary">Leave </a>
         <button type="button"  id='toomuchbtn' class="btn btn-secondary" data-toggle="modal" data-target="#toomuch">TooMuchTalker</button>
         <a href="/"  type="button" class="btn btn-secondary">Back </a>
@@ -50,23 +50,7 @@
         </div>
         <div class="modal-body">
            
-            <table class="table table-hover">
-                <thead>
-                    <tr>
-                    <th scope="col">#</th>
-                    <th scope="col">Nickname</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {{#each users}}
-                    <tr>
-                        <th scope="row">{{@index}}</th>
-                        <td>{{this.user_nickname}}</td>
-                    </tr>
-                    <tr>
-                    {{/each}}
-                </tbody>
-                </table>
+            <div id="userlist-result"> </div>
         </div>
         <div class="modal-footer">
             <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
@@ -233,6 +217,19 @@
               type: 'GET',
               success: function(result){
                       $('#banlist-result').html(result);
+                  }
+              }
+          );
+      });
+
+        $('#userlist').click(function(){
+          $('#userlist-result').html('');
+          $.ajax({
+              url: `/userlist/{{chatroom_id}}`,
+              dataType: 'html',
+              type: 'GET',
+              success: function(result){
+                      $('#userlist-result').html(result);
                   }
               }
           );

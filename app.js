@@ -433,8 +433,19 @@ app.get('/ban/:chatroom_id/:user_id', (req,res)=>{
             io.emit('ban', user_id);
         }
     });
-    
 })
+
+app.get('/userlist/:chatroom_id', (req,res)=>{
+    var chatroom_id = req.params.chatroom_id;
+    var sql = `SELECT users.user_id ,user_nickname, user_profile FROM users JOIN participate ON participate.user_id = users.user_id WHERE participate.chatroom_id = ? AND participate.banish=0`;
+    conn.query(sql, [chatroom_id], (err, users, fields)=>{
+        if(err){
+            console.error('error connecting: ' + err.stack);
+        }else{
+            res.render('users', {users:users});
+        }
+    });
+});
 
 // var login = require('./login')(app);
 // app.use('/login', login);
