@@ -212,8 +212,8 @@ app.get('/chat/:chatroom_id', (req, res) => {
             console.log("Work");
         });
 
-        var sql = `SELECT msg.msg_id, msg.content, msg.datetime, users.user_id ,users.user_nickname FROM msg JOIN users ON users.user_id =msg.user_id WHERE msg.datetime > (NOW() - INTERVAL 1 WEEK) AND msg.chatroom_id = ?`;
-        conn.query(sql, [chatroom_id], (err, msgs, fields)=>{
+        var sql = `SELECT msg.content,msg.datetime, users.user_nickname,(SELECT COUNT(participate.user_id) AS person FROM participate WHERE participate.chatroom_id = ? AND participate.ptime >msg.datetime) AS mcount FROM msg JOIN users ON users.user_id =msg.user_id WHERE msg.datetime > (NOW() - INTERVAL 1 WEEK) AND msg.chatroom_id = ?`;
+        conn.query(sql, [chatroom_id, chatroom_id], (err, msgs, fields)=>{
             if(err){
                 console.error('error connecting: ' + err.stack);
             }else{
@@ -457,9 +457,3 @@ app.get('/hotplace', (req,res)=>{
         }
     });
 });
-
-// var login = require('./login')(app);
-// app.use('/login', login);
-
-// var main = require('./main')(app);
-// app.use('/main', main);
