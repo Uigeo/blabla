@@ -112,9 +112,10 @@ app.post('/newchat' ,(req, res) => {
         INSERT INTO chatroom (chatroom_name, user_id, room_type, hash_tag) VALUES ( ?, ?, ?, ?);
         SELECT @A:=chatroom_id FROM chatroom WHERE chatroom_name = ?;
         INSERT INTO participate (chatroom_id, user_id, banish, ptime)VALUES(@A,?,'0',NOW());
+        INSERT INTO msg (content, user_id, read_count, datetime, chatroom_id) VALUES('Chatroom Created',?,'1',NOW(),@A);
         COMMIT;
         ` ;
-    conn.query(sql, [room_name, host, room_type, hashtag, room_name, req.session.user_id], (err, users, fields)=>{
+    conn.query(sql, [room_name, host, room_type, hashtag, room_name, req.session.user_id, req.session.user_id], (err, users, fields)=>{
         if(err){
             console.error('error connecting: ' + err.stack);
             return;
@@ -211,21 +212,19 @@ app.get('/chat/:chatroom_id', (req, res) => {
             console.log("Work");
         });
 
-        var sql = `SELECT user_nickname, user_profile FROM users JOIN participate ON participate.user_id = users.user_id WHERE participate.chatroom_id = ? AND participate.banish=0`;
-        conn.query(sql, [chatroom_id], (err, users, fields)=>{
+        var sql = `SELECT msg.msg_id, msg.content, msg.datetime, users.user_id ,users.user_nickname FROM msg JOIN users ON users.user_id =msg.user_id WHERE msg.datetime > (NOW() - INTERVAL 1 WEEK) AND msg.chatroom_id = ?`;
+        conn.query(sql, [chatroom_id], (err, msgs, fields)=>{
             if(err){
                 console.error('error connecting: ' + err.stack);
             }else{
-                var sql = `SELECT * FROM msg WHERE datetime > (NOW() - INTERVAL 1 WEEK) AND chatroom_id = ?`;
-                conn.query(sql, [chatroom_id], (err, msgs, fields)=>{
-                    msgs.forEach(msg => {
-                        let d =  new Date(msg.datetime).toLocaleTimeString();
-                        msg.datetime = d;
-                    });
-                    res.render('chatroom',{chatroom_id:chatroom_id, users:users, nick:req.session.user_nickname, user_id:req.session.user_id, msgs:msgs});
+                msgs.forEach(msg => {
+                    let d =  new Date(msg.datetime).toLocaleTimeString();
+                    msg.datetime = d;
                 });
+                res.render('chatroom',{chatroom_id:chatroom_id, nick:req.session.user_nickname, user_id:req.session.user_id, msgs:msgs});
             }
         });
+        
     }
     else{
         res.redirect('/');
@@ -443,6 +442,18 @@ app.get('/userlist/:chatroom_id', (req,res)=>{
             console.error('error connecting: ' + err.stack);
         }else{
             res.render('users', {users:users});
+        }
+    });
+});
+
+app.get('/hotplace', (req,res)=>{
+    
+    var sql = `SELECT chatroom_id ,chatroom_name, hash_tag FROM chatroom WHERE (SELECT COUNT(msg.msg_id) AS nmsg FROM msg WHERE msg.chatroom_id = chatroom.chatroom_id AND datetime > (NOW() - INTERVAL 1 WEEK)) = (SELECT MAX( (SELECT COUNT(msg.msg_id) AS nmsg FROM msg WHERE msg.chatroom_id = chatroom.chatroom_id AND datetime > (NOW() - INTERVAL 1 WEEK))) FROM chatroom)`;
+    conn.query(sql, (err, chatroom, fields)=>{
+        if(err){
+            console.error('error connecting: ' + err.stack);
+        }else{
+            res.render('hotplace', {chatroom:chatroom[0]});
         }
     });
 });

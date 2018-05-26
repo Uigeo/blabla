@@ -1,5 +1,25 @@
 <body class="text-center" data-gr-c-s-loaded="true">
 
+        <!-- User Modal -->
+    <div class="modal fade" id="hotplace" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+        <div class="modal-header">
+            <h5 class="modal-title" id="exampleModalLabel">Hotplace</h5>
+            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+            </button>
+        </div>
+        <div class="modal-body">
+            <div id="hotresult"> </div>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+        </div>
+        </div>
+    </div>
+    </div>
+
     <div class="cover-container d-flex w-100 h-100 p-3 mx-auto flex-column">
       <header class="masthead mb-auto">
         <div class="inner">
@@ -10,6 +30,7 @@
                 <a class="nav-link" href="/login">Login</a>
               {{else}}
                 <a class="nav-link active" href="/">Home</a>
+                <a class="nav-link" id="hotbtn" data-toggle="modal" data-target="#hotplace">Hot Place</a>
                 <a class="nav-link" href="/newchat">New Chatroom</a>
                 <a class="nav-link" href="/mypage">{{auth.user_nickname}}</a>
                 <a class="nav-link" href="/logout">Logout</a>
@@ -48,12 +69,6 @@
         </div>
         <div class="col">
           <h2>Your Chatrooms</h2>
-          <from class="input-group mb-3">
-            <input type="text" class="form-control" placeholder="room name"  aria-describedby="basic-addon2">
-            <div class="input-group-append">
-              <button class="btn btn-outline-secondary" type="button">search</button>
-            </div>
-          </from>
         <div class="list-group roomlist">
           {{#each participated}}
               <a href="/chat/{{this.chatroom_id}}" class="list-group-item list-group-item-action list-group-item-light">
@@ -85,6 +100,18 @@
               type: 'GET',
               success: function(result){
                       $('#chatroom-group').html(result);
+                  }
+              }
+          )
+      });
+
+      $('#hotbtn').click(function(){
+          $.ajax({
+              url: `/hotplace`,
+              dataType: 'html',
+              type: 'GET',
+              success: function(result){
+                      $('#hotresult').html(result);
                   }
               }
           )
