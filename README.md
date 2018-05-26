@@ -16,9 +16,9 @@ Overview : You can join and send messages in open chatting room.
 
 # How to Implement
 
-1. This is our demonstration server.
+You can check all things in our demonstration server.
 
 http://ec2-13-209-5-26.ap-northeast-2.compute.amazonaws.com:3000/
 
-2. 
+ 
 
