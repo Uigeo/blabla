@@ -39,13 +39,23 @@
         </div>
       </header>
     {{#unless auth.user_id}}
-      <main role="main" class="inner cover">
+      <main role="main" class="inner cover nonauth">
         <h1 class="cover-heading">BLABLA</h1>
         <p class="lead">BLABLA is real-time webbase open chattinig service</p>
         <p class="lead">
           <a href="/login" class="btn btn-lg btn-secondary">Login</a>
         </p>
+       
       </main>
+        
+        <footer class="mastfoot mt-auto">
+           <hr>
+           <h1>TEAM BLABLA</h1>
+        <img src="team.jpeg" class="img-fluid" alt="Responsive image">
+        <br>
+        <br>
+        <br>
+      </footer>
     {{else}}
       
       <div class='row'>
@@ -82,9 +92,7 @@
       </div>
      
     {{/unless}}
-      <footer class="mastfoot mt-auto">
 
-      </footer>
     </div>
 
 
