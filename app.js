@@ -51,7 +51,7 @@ app.get('/', function (req, res) {
             console.error('error connecting: ' + err.stack);
             return;
         } 
-        else if (chatrooms.length > 0) {
+        else if (chatrooms.length > -1) {
            
             var sql = `
                 START TRANSACTION;
