@@ -429,6 +429,7 @@ app.get('/ban/:chatroom_id/:user_id', (req,res)=>{
         }else{
             console.log("Ban!!");
             io.emit('ban', user_id);
+            res.redirect("/chat/" + chatroom_id);
         }
     });
 })
